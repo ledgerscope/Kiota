@@ -1,0 +1,75 @@
+name: API client generator
+
+on: push
+
+jobs:
+  build:
+    env:
+      ContinuousIntegrationBuild: true
+      EmbedUntrackedSources: true
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v3
+
+    - name: Install kiota as a tool
+      run: dotnet tool install --global Microsoft.OpenApi.Kiota
+
+    - name: Generate client
+      run: kiota generate -n Ledgerscope -l csharp -d swagger.yaml -o ./output/LedgerscopeApi
+
+    - name: Create csproj file
+      working-directory: ./output/LedgerscopeApi
+      run: dotnet new classlib
+
+    - name: Remove default Class1.cs file
+      run: rm ./output/LedgerscopeApi/Class1.cs
+
+    - name: Install required NuGet packages
+      working-directory: ./output/LedgerscopeApi
+      run: |
+        dotnet add package Microsoft.Kiota.Abstractions
+        dotnet add package Microsoft.Kiota.Http.HttpClientLibrary
+        dotnet add package Microsoft.Kiota.Serialization.Form
+        dotnet add package Microsoft.Kiota.Serialization.Json
+        dotnet add package Microsoft.Kiota.Serialization.Multipart
+        dotnet add package Microsoft.Kiota.Serialization.Text
+
+    - name: Install dependencies
+      run: dotnet restore
+      working-directory: ./output/LedgerscopeApi
+
+    - name: Build project
+      working-directory: ./output/LedgerscopeApi
+      run: dotnet build --configuration Release --no-restore
+
+    - name: Pack the project into a NuGet package
+      run: dotnet pack --configuration Release -p:PackageVersion=1.0.${{github.run_number}} -p:PackageId=Ledgerscope.Api -p:RepositoryUrl="https://github.com/ledgerscope/Kiota" -p:RepositoryType=git -p:Authors="Ledgerscope"
+      working-directory: ./output/LedgerscopeApi
+    
+    - uses: actions/upload-artifact@v3
+      if: success()
+      with:
+        name: Packages
+        path: ./output/LedgerscopeApi/bin/Release/*.nupkg
+
+    - uses: actions/upload-artifact@v3
+      if: always()
+      with:
+        name: Source
+        path: ./output/LedgerscopeApi/**
+
+  publish:
+    runs-on: ubuntu-latest
+    needs: build
+    steps:    
+    - uses: actions/download-artifact@v3
+      with:
+        name: Packages
+
+    - name: Setup NuGet
+      run: dotnet nuget add source --username ${{ github.repository_owner }} --password ${{ secrets.GITHUB_TOKEN }} --store-password-in-clear-text --name github "https://nuget.pkg.github.com/${{ github.repository_owner }}/index.json"
+
+    - name: Publish
+      run: dotnet nuget push "**/*.nupkg" --source github
