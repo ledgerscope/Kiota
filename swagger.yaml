@@ -1,3 +1,9 @@
+# Merge date: Thursday 26 September 2024, 13:42:13 UTC
+# Merge environment: AzureAD\MoyinoluwaMayowa on LS-MOYIN-MAYOWA
+# Source document: original.yaml
+# Source document version: 6.2.0
+# Modification document: delta.yaml
+# Modification document version: 
 
 openapi: 3.0.0
 info:
@@ -10,7 +16,7 @@ info:
     url: https://www.ledgerscope.com
 servers:
 - description: The Ledgerscope Accounting API exposes accounting and related functions of the main Xero application and can be used for a variety of purposes such as creating transactions like invoices and credit notes, right through to extracting accounting data via our reports endpoint.
-  url: https://xero.api.ledgerscope.com
+  url: https://xero.api.ledgerscope.com/api.xro/2.0
 paths:
   /Accounts:
     parameters:
